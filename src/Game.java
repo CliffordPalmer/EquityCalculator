@@ -7,6 +7,7 @@ public class Game {
     private List<Player> players = new ArrayList<>();
     private List<Card> communityCards = new ArrayList<>();
     private int cardsLeft;
+    HandEvaluator eval;
 
     public Game() {
         int index = 0;
@@ -18,7 +19,66 @@ public class Game {
         cardsLeft = 52;
     }
 
+    public void runSim(){
+        eval = new HandEvaluator();
+        Scanner scanner = new Scanner(System.in);
+
+        Player playerOne = new Player("Clifford");
+        Player playerTwo = new Player("Cody");
+        playerOne.addCardToHand(dealCard(14, 1));
+        playerOne.addCardToHand(dealCard(8, 1));
+        playerTwo.addCardToHand(dealCard(7, 2));
+        playerTwo.addCardToHand(dealCard(8, 2));
+        players.add(playerOne);
+        players.add(playerTwo);
+//        communityCards.add(dealCard(14, 3));
+//        communityCards.add(dealCard(13, 3));
+//        communityCards.add(dealCard(3, 0));
+//        communityCards.add(dealCard(5, 0));
+//        communityCards.add(dealCard(8, 0));
+
+        int numCommunity = communityCards.size();
+
+        int playerOneWins = 0;
+        int playerTwoWins = 0;
+        int ties = 0;
+
+        System.out.println("Press enter to calculate EV");
+        String pause = scanner.nextLine();
+        for (int i = 0; i < 100; i++) {
+            for (int j = 0; j < 1000; j++) {
+                int cardsToDeal = 5 - numCommunity;
+                for (int k = 0; k < cardsToDeal; k++) {
+                    communityCards.add(randDealCard());
+                }
+                long playerOneStrength = eval.evaluateHand(players.get(0).getHand(), communityCards);
+                long playerTwoStrength = eval.evaluateHand(players.get(1).getHand(), communityCards);
+                if(playerOneStrength > playerTwoStrength){
+                    playerOneWins++;
+                }
+                else if(playerOneStrength < playerTwoStrength){
+                    playerTwoWins++;
+                }
+                else{
+                    ties++;
+                }
+
+                displayState(playerOneStrength, playerTwoStrength);
+                for (int k = 0; k < cardsToDeal; k++) {
+                    communityCards.remove(communityCards.size() - 1).setDealt(false);
+                    cardsLeft++;
+                }
+            }
+            int totalHands = playerOneWins + playerTwoWins + ties;
+            System.out.println("Player 1: " + (100.0 * playerOneWins/totalHands));
+            System.out.println("Player 2: " + (100.0 * playerTwoWins/totalHands));
+        }
+
+        scanner.close();
+    }
+
     public void run() {
+        HandEvaluator eval = new HandEvaluator();
         Scanner scanner = new Scanner(System.in);
 
         System.out.print("Enter number of players: ");
@@ -44,7 +104,58 @@ public class Game {
             communityCards.add(card);
         }
 
-        displayState();
+        long playerOneStrength = eval.evaluateHand(players.get(0).getHand(), communityCards);
+        long playerTwoStrength = eval.evaluateHand(players.get(1).getHand(), communityCards);
+
+        System.out.println("Player one: " + playerOneStrength);
+        System.out.println("Player two: " + playerTwoStrength);
+
+//        Player playerOne = new Player("Clifford");
+//        Player playerTwo = new Player("Cody");
+//        playerOne.addCardToHand(new Card(14, 1));
+//        playerOne.addCardToHand(new Card(14, 2));
+//        playerTwo.addCardToHand(new Card(13, 3));
+//        playerTwo.addCardToHand(new Card(13, 0));
+//        players.add(playerOne);
+//        players.add(playerTwo);
+//
+//        int numCommunity = 0;
+//
+//        int playerOneWins = 0;
+//        int playerTwoWins = 0;
+//        int ties = 0;
+//
+//        System.out.println("Press enter to calculate EV");
+//        String pause = scanner.nextLine();
+//        for (int i = 0; i < 10; i++) {
+//            for (int j = 0; j < 100; j++) {
+//                int cardsToDeal = 5 - numCommunity;
+//                for (int k = 0; k < cardsToDeal; k++) {
+//                    communityCards.add(randDealCard());
+//                }
+//                long playerOneStrength = eval.evaluateHand(players.get(0).getHand(), communityCards);
+//                long playerTwoStrength = eval.evaluateHand(players.get(1).getHand(), communityCards);
+//                if(playerOneStrength > playerTwoStrength){
+//                    playerOneWins++;
+//                }
+//                else if(playerOneStrength < playerTwoStrength){
+//                    playerTwoWins++;
+//                }
+//                else{
+//                    ties++;
+//                }
+//
+//                displayState(playerOneStrength, playerTwoStrength);
+//                for (int k = 0; k < cardsToDeal; k++) {
+//                    communityCards.remove(communityCards.size() - 1).setDealt(false);
+//                    cardsLeft++;
+//                }
+//            }
+//            int totalHands = playerOneWins + playerTwoWins + ties;
+//            System.out.println("Player 1: " + (100.0 * playerOneWins/totalHands));
+//            System.out.println("Player 2: " + (100.0 * playerTwoWins/totalHands));
+//        }
+
         scanner.close();
     }
 
@@ -62,6 +173,20 @@ public class Game {
                 System.out.print("Invalid input. Please enter a number: ");
                 scanner.nextLine(); // consume invalid input
             }
+        }
+    }
+
+    private Card dealCard(int rank, int suit){
+        // Calculate index in the deck array
+        int index = (suit * 13) + (rank - 2);
+        Card card = deck[index];
+
+        if (!card.isDealt) {
+            card.isDealt = true;
+            cardsLeft --;
+            return card;
+        } else {
+            return null;
         }
     }
 
@@ -112,6 +237,22 @@ public class Game {
         System.out.println();
     }
 
+    private void displayState(long playerOneStrength, long playerTwoStrength) {
+        System.out.println("--- Game State ---");
+        for (Player player : players) {
+            System.out.println(player);
+        }
+        System.out.print("Community Cards: ");
+        for (Card card : communityCards) {
+            System.out.print(card + " ");
+        }
+        System.out.println();
+        System.out.println("player 1 hand strength: " + playerOneStrength);
+        System.out.println(HandEvaluator.describeHand(playerOneStrength));
+        System.out.println("player 2 hand strength: " + playerTwoStrength);
+        System.out.println(HandEvaluator.describeHand(playerTwoStrength));
+    }
+
     private Card randDealCard() {
 
         int index;
@@ -120,24 +261,32 @@ public class Game {
         if (cardsLeft == 0) {
             return null;
         }
+
         index = (int) (Math.random() * cardsLeft) + 1;
-        for (int i = 0; i < 52; i++) {
-            card = deck[index];
-            if (!card.isDealt) {
+        int i = 0;
+
+        do {
+            if (!deck[i].isDealt) {
                 index--;
             }
-            if (index == 0) {
-                return deck[i];
-            }
+            i++;
+        } while (index > 0 && i < 52);
+
+        if (i > 0 && i <= 52) {
+            card = deck[i-1];
+            card.isDealt = true;
+            cardsLeft--;
+            return card;
         }
+
+        return null;
     }
 
     private void calcEq(){
-
     }
 
     public static void main(String[] args) {
         Game game = new Game();
-        game.run();
+        game.runSim();
     }
 }

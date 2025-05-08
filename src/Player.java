@@ -22,4 +22,8 @@ public class Player {
     public String toString() {
         return name + ": [" + hand[0] + ", " + hand[1] + "]";
     }
+
+    public Card[] getHand() {
+        return hand;
+    }
 }
